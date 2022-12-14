@@ -2,8 +2,14 @@ let graphql = require("graphql");
 let AuthorSchema = require("../models/author");
 let BookSchema = require("../models/book");
 
-let { GraphQLObjectType, GraphQLList, GraphQLString, GraphQLID, GraphQLInt } =
-  graphql;
+let {
+  GraphQLObjectType,
+  GraphQLNonNull,
+  GraphQLList,
+  GraphQLString,
+  GraphQLID,
+  GraphQLInt,
+} = graphql;
 
 //dummy data
 let books = [
@@ -29,8 +35,8 @@ let BookType = new GraphQLObjectType({
     genre: { type: GraphQLString },
     author: {
       type: AuthorType,
-      resolve(parent, _args) {
-        return authors.find((author) => author.id === parent.authorId);
+      async resolve(parent, _args) {
+        return await AuthorSchema.findById(parent.authorId);
       },
     },
   }),
@@ -44,8 +50,8 @@ let AuthorType = new GraphQLObjectType({
     age: { type: GraphQLInt },
     books: {
       type: new GraphQLList(BookType),
-      resolve(parent, _args) {
-        return books.filter((book) => book.authorId === parent.id);
+      async resolve(parent, _args) {
+        return BookSchema.find({authorId:parent.id})
       },
     },
   }),
@@ -58,27 +64,27 @@ let RootQuery = new GraphQLObjectType({
     book: {
       type: BookType,
       args: { id: { type: GraphQLID } },
-      resolve(_parent, args) {
-        return BookSchema.findById(args.id);
+      async resolve(parent, args) {
+        return await BookSchema.findById(args.id)
       },
     },
     author: {
       type: AuthorType,
       args: { id: { type: GraphQLID } },
-      resolve(_parent, args) {
-        return AuthorSchema.findById(args.id);
+      async resolve(_parent, args) {
+        return await AuthorSchema.findById(args.id);
       },
     },
     books: {
       type: new GraphQLList(BookType),
-      resolve() {
-        return BookSchema.find();
+      async resolve() {
+        return await BookSchema.find();
       },
     },
     authors: {
       type: new GraphQLList(AuthorType),
-      resolve() {
-        return AuthorSchema.find();
+     async resolve() {
+        return await  AuthorSchema.find();
       },
     },
   },
@@ -91,9 +97,9 @@ let Mutation = new GraphQLObjectType({
       type: AuthorType,
       args: {
         name: {
-          type: GraphQLString,
+          type: new GraphQLNonNull(GraphQLString),
         },
-        age: { type: GraphQLInt },
+        age: { type: new GraphQLNonNull(GraphQLInt) },
       },
       resolve(parent, args) {
         let author = new AuthorSchema({
